@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Jogo da Velha - Menu</title>
+<style>
+    body {
+        font-family: 'Courier New', monospace;
+        text-align: center;
+        background-color: #222;
+        color: #fff;
+    }
+
+    h1 {
+        color: #f1c40f;
+        margin-top: 20px;
+    }
+
+    .menu, #game-container, #stats {
+        margin-top: 30px;
+    }
+
+    button {
+        display: block;
+        margin: 10px auto;
+        padding: 10px 20px;
+        font-size: 18px;
+        border-radius: 5px;
+        border: none;
+        background-color: #3498db;
+        color: white;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #2980b9;
+    }
+
+    #game {
+        display: grid;
+        grid-template-columns: repeat(3, 100px);
+        grid-template-rows: repeat(3, 100px);
+        gap: 4px;
+        justify-content: center;
+        margin: 30px auto;
+    }
+
+    .cell {
+        background-color: #444;
+        border: 3px solid #888;
+        font-size: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+        width: 100px;
+        height: 100px;
+    }
+
+    .cell:hover {
+        background-color: #666;
+    }
+
+    #message {
+        margin-top: 20px;
+        font-size: 22px;
+        font-weight: bold;
+    }
+
+    #reset {
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 5px;
+        border: none;
+        background-color: #e74c3c;
+        color: white;
+        cursor: pointer;
+    }
+
+    #reset:hover {
+        background-color: #c0392b;
+    }
+
+    #back {
+        margin-top: 15px;
+        background-color: #95a5a6;
+    }
+
+    #back:hover {
+        background-color: #7f8c8d;
+    }
+
+</style>
+</head>
+<body>
+
+<h1>Jogo da Velha</h1>
+
+<div class="menu">
+    <button onclick="startGame('friend')">Jogar com um amigo</button>
+    <button onclick="startGame('bot')">Jogar contra o bot</button>
+    <button onclick="showStats()">Ver vitórias/derrotas</button>
+    <button onclick="alert('Funcionalidade online ainda não implementada')">Jogar online</button>
+</div>
+
+<div id="game-container" style="display:none;">
+    <div id="game">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+    <div id="message"></div>
+    <button id="reset">Reiniciar Jogo</button>
+    <button id="back">Voltar ao Menu</button>
+</div>
+
+<div id="stats" style="display:none;">
+    <h2>Estatísticas</h2>
+    <p id="statsText"></p>
+    <button onclick="backToMenu()">Voltar ao Menu</button>
+</div>
+
+<script>
+    const cells = document.querySelectorAll(".cell");
+    const message = document.getElementById("message");
+    const gameContainer = document.getElementById("game-container");
+    const menu = document.querySelector(".menu");
+    const statsDiv = document.getElementById("stats");
+    const statsText = document.getElementById("statsText");
+
+    let board = ["", "", "", "", "", "", "", "", ""];
+    let currentPlayer = "X";
+    let gameActive = true;
+    let mode = "friend"; // friend ou bot
+
+    const winningConditions = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
+
+    function startGame(selectedMode){
+        mode = selectedMode;
+        menu.style.display = "none";
+        gameContainer.style.display = "block";
+        resetGame();
+    }
+
+    function checkWinner(){
+        for (const condition of winningConditions){
+            const [a,b,c] = condition;
+            if(board[a] && board[a] === board[b] && board[a] === board[c]){
+                gameActive = false;
+                message.textContent = `Jogador ${currentPlayer} venceu!`;
+                saveStats(currentPlayer === "X" ? "X" : "O");
+                highlightWinningCells(condition);
+                return;
+            }
+        }
+        if(!board.includes("")){
+            gameActive = false;
+            message.textContent = "Empate!";
+            saveStats("draw");
+        }
+    }
+
+    function highlightWinningCells(cellsIndices){
+        cellsIndices.forEach(i => {
+            cells[i].style.backgroundColor = "#f1c40f";
+        });
+    }
+
+    function handleClick(e){
+        const index = e.target.getAttribute("data-index");
+        if(board[index] !== "" || !gameActive) return;
+
+        board[index] = currentPlayer;
+        e.target.textContent = currentPlayer;
+        checkWinner();
+
+        if(gameActive){
+            if(mode === "bot" && currentPlayer === "X"){
+                currentPlayer = "O";
+                message.textContent = `É a vez do bot`;
+                botMove();
+            } else {
+                currentPlayer = currentPlayer === "X" ? "O" : "X";
+                message.textContent = `É a vez de ${currentPlayer}`;
+            }
+        }
+    }
+
+    function botMove(){
+        if(!gameActive) return;
+        let emptyIndices = board.map((v,i)=>v===""?i:null).filter(v=>v!==null);
+        if(emptyIndices.length === 0) return;
+        const move = emptyIndices[Math.floor(Math.random()*emptyIndices.length)];
+        board[move] = "O";
+        cells[move].textContent = "O";
+        checkWinner();
+        if(gameActive){
+            currentPlayer = "X";
+            message.textContent = `É a vez de ${currentPlayer}`;
+        }
+    }
+
+    function resetGame(){
+        board = ["", "", "", "", "", "", "", "", ""];
+        cells.forEach(cell => {
+            cell.textContent = "";
+            cell.style.backgroundColor = "#444";
+        });
+        currentPlayer = "X";
+        gameActive = true;
+        message.textContent = `É a vez de ${currentPlayer}`;
+        if(mode === "bot" && currentPlayer === "O"){
+            botMove();
+        }
+    }
+
+    function saveStats(result){
+        let stats = JSON.parse(localStorage.getItem("tictactoeStats")) || {X:0,O:0,draw:0};
+        if(result === "X") stats.X++;
+        else if(result === "O") stats.O++;
+        else stats.draw++;
+        localStorage.setItem("tictactoeStats", JSON.stringify(stats));
+    }
+
+    function showStats(){
+        menu.style.display = "none";
+        statsDiv.style.display = "block";
+        let stats = JSON.parse(localStorage.getItem("tictactoeStats")) || {X:0,O:0,draw:0};
+        statsText.textContent = `Vitórias X: ${stats.X}, Vitórias O: ${stats.O}, Empates: ${stats.draw}`;
+    }
+
+    function backToMenu(){
+        statsDiv.style.display = "none";
+        gameContainer.style.display = "none";
+        menu.style.display = "block";
+    }
+
+    document.getElementById("reset").addEventListener("click", resetGame);
+    document.getElementById("back").addEventListener("click", backToMenu);
+    cells.forEach(cell => cell.addEventListener("click", handleClick));
+</script>
+</body>
+</html>
